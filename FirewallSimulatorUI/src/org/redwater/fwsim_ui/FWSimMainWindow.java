@@ -8,6 +8,7 @@ import javax.swing.JTextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.Iterator;
 
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -21,10 +22,18 @@ import javax.swing.JList;
 import javax.swing.SwingConstants;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.pcap4j.packet.IpPacket;
+import org.pcap4j.packet.Packet;
+import org.pcap4j.packet.TcpPacket;
+import org.pcap4j.util.Packets;
+
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import net.miginfocom.swing.MigLayout;
 import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
 
 public class FWSimMainWindow {
 
@@ -32,7 +41,9 @@ public class FWSimMainWindow {
 	private JTextField pcapFilenameTextField;
 	private JTextField rulesFilenameTextField;
 	private JTextField resultTextField;
-	private PacketList packetList;
+	private JList<String> packetList;
+	private DefaultListModel<String> packetListModel;
+	private PacketList packets;
 
 	/**
 	 * Launch the application.
@@ -54,7 +65,7 @@ public class FWSimMainWindow {
 	 * Create the application.
 	 */
 	public FWSimMainWindow() {
-		packetList = new PacketList();
+		packets = new PacketList();
 		initialize();
 	}
 
@@ -111,11 +122,15 @@ public class FWSimMainWindow {
 		packetsPanel.add(pcapFilenameTextField, "cell 1 0,growx,aligny top");
 		pcapFilenameTextField.setColumns(80);
 		
-		JList<String> packetList = new JList<>();
-		packetsPanel.add(packetList, "cell 0 1 2 4,grow");
+		JScrollPane packetScrollPane = new JScrollPane();		
+		packetListModel = new DefaultListModel<>();
+		packetList = new JList<>(packetListModel);
+		packetList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		packetScrollPane.setViewportView(packetList);
+		packetsPanel.add(packetScrollPane, "cell 0 1 2 4,grow");
 		
-		JScrollBar packetListScrollBar = new JScrollBar();
-		packetsPanel.add(packetListScrollBar, "cell 2 1 1 4,grow");
+		// JScrollBar packetListScrollBar = new JScrollBar();
+		// packetsPanel.add(packetListScrollBar, "cell 2 1 1 4,grow");
 		
 		JButton btnTestSelectedPacket = new JButton("Test Selected Packet");
 		packetsPanel.add(btnTestSelectedPacket, "cell 3 1,alignx center,aligny center");
@@ -190,13 +205,47 @@ public class FWSimMainWindow {
 		int returnVal = chooser.showOpenDialog(frame);
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			try {
-				packetList.open(chooser.getSelectedFile());
+				packets.open(chooser.getSelectedFile());
+				Iterator<Packet> it = packets.iterator();
+				packetListModel.clear();
+				int packetNumber = 0;
+				while (it.hasNext()) {
+					packetNumber++;
+					Packet p = it.next();
+					String packetType = "Ether";
+					StringBuilder sb = new StringBuilder();
+					if (Packets.containsIpPacket(p)) {
+						IpPacket ipPacket = (IpPacket)p.get(IpPacket.class);
+						if (ipPacket != null) {
+							sb.append(String.format("srcIp %s dstIP %s ",
+									ipPacket.getHeader().getSrcAddr().getHostAddress(),
+									ipPacket.getHeader().getDstAddr().getHostAddress()));
+							packetType = "IP";
+						}
+					}
+					if (Packets.containsTcpPacket(p)) {
+						TcpPacket tcpPacket = (TcpPacket)p.get(TcpPacket.class);
+						if (tcpPacket != null) {
+							sb.append(String.format("srcPort %d dstPort %d ",
+									tcpPacket.getHeader().getSrcPort().valueAsInt(),
+									tcpPacket.getHeader().getDstPort().valueAsInt()));
+							packetType = "TCP";
+						}						
+					}
+					packetListModel.addElement(String.format("%4d %s %s", packetNumber, packetType, sb.toString()));
+				}
 			}
 			catch (IOException e) {
 				JOptionPane.showMessageDialog(frame,
 					    e.getMessage(),
 					    "Pcap File Error",
 					    JOptionPane.ERROR_MESSAGE);
+			}
+			catch (Exception e) {
+				JOptionPane.showMessageDialog(frame,
+					    e.getMessage(),
+					    "Packet Analysis Error",
+					    JOptionPane.ERROR_MESSAGE);				
 			}
 		}
 	}
@@ -205,6 +254,7 @@ public class FWSimMainWindow {
 	 * Close the packet capture file.
 	 */
 	private void closePcapFile() {
-		packetList.close();
+		packets.close();
+		packetListModel.clear();
 	}
 }
