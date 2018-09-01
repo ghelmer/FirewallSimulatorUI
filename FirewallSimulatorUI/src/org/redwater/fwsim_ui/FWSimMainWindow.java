@@ -3,29 +3,26 @@ package org.redwater.fwsim_ui;
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
-import java.awt.GridBagLayout;
 import javax.swing.JLabel;
-import java.awt.GridBagConstraints;
 import javax.swing.JTextField;
-import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JMenu;
-import javax.swing.JTextArea;
 import javax.swing.JSeparator;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
 import java.awt.Font;
 import javax.swing.JList;
-import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
-import com.jgoodies.forms.layout.FormLayout;
-import com.jgoodies.forms.layout.ColumnSpec;
-import com.jgoodies.forms.layout.RowSpec;
-import com.jgoodies.forms.layout.FormSpecs;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
 import javax.swing.JButton;
-import javax.swing.BoxLayout;
-import java.awt.Component;
+import javax.swing.JFileChooser;
 import net.miginfocom.swing.MigLayout;
 import javax.swing.JScrollBar;
 
@@ -35,6 +32,7 @@ public class FWSimMainWindow {
 	private JTextField pcapFilenameTextField;
 	private JTextField rulesFilenameTextField;
 	private JTextField resultTextField;
+	private PacketList packetList;
 
 	/**
 	 * Launch the application.
@@ -56,6 +54,7 @@ public class FWSimMainWindow {
 	 * Create the application.
 	 */
 	public FWSimMainWindow() {
+		packetList = new PacketList();
 		initialize();
 	}
 
@@ -81,7 +80,7 @@ public class FWSimMainWindow {
 		rulesPanel.add(rulesFilenameTextField, "cell 1 0,growx");
 		rulesFilenameTextField.setColumns(10);
 		
-		JList rulesList = new JList();
+		JList<String> rulesList = new JList<>();
 		rulesPanel.add(rulesList, "cell 0 1 2 4,grow");
 		
 		JButton btnAddRule = new JButton("Add Rule");
@@ -112,7 +111,7 @@ public class FWSimMainWindow {
 		packetsPanel.add(pcapFilenameTextField, "cell 1 0,growx,aligny top");
 		pcapFilenameTextField.setColumns(80);
 		
-		JList packetList = new JList();
+		JList<String> packetList = new JList<>();
 		packetsPanel.add(packetList, "cell 0 1 2 4,grow");
 		
 		JScrollBar packetListScrollBar = new JScrollBar();
@@ -135,11 +134,26 @@ public class FWSimMainWindow {
 		JMenu mnFile = new JMenu("File");
 		menuBar.add(mnFile);
 		
-		JMenuItem mntmOpen = new JMenuItem("Open Pcap File");
-		mnFile.add(mntmOpen);
+		JMenuItem mntmOpenPcap = new JMenuItem("Open Pcap File");
+		mntmOpenPcap.addActionListener(new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent arg0) {
+		        openPcapFile();
+		    }
+		});
+		mnFile.add(mntmOpenPcap);
 		
 		JMenuItem mntmClosePcapFile = new JMenuItem("Close Pcap File");
+		mntmOpenPcap.addActionListener(new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent arg0) {
+		        closePcapFile();
+		    }
+		});
 		mnFile.add(mntmClosePcapFile);
+		
+		JSeparator separator_1 = new JSeparator();
+		mnFile.add(separator_1);
 		
 		JMenuItem mntmOpenRulesFile = new JMenuItem("Open Rules File");
 		mnFile.add(mntmOpenRulesFile);
@@ -150,8 +164,47 @@ public class FWSimMainWindow {
 		JMenuItem mntmCloseRulesFile = new JMenuItem("Close Rules File");
 		mnFile.add(mntmCloseRulesFile);
 		
+		JSeparator separator_2 = new JSeparator();
+		mnFile.add(separator_2);
+		
 		JMenuItem mntmExit = new JMenuItem("Exit");
+		mntmExit.addActionListener(new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent arg0) {
+		        System.exit(0);
+		    }
+		});
 		mnFile.add(mntmExit);
 	}
 
+	/**
+	 * Open and load the packet capture file.
+	 */
+	private void openPcapFile() {
+		JFileChooser chooser = new JFileChooser();
+		FileNameExtensionFilter filter1 = new FileNameExtensionFilter("Pcap", "pcap");
+		FileNameExtensionFilter filter2 = new FileNameExtensionFilter("PcapNG", "pcapng");
+		chooser.addChoosableFileFilter(filter1);
+		chooser.addChoosableFileFilter(filter2);
+		//chooser.setCurrentDirectory("<YOUR DIR COMES HERE>");
+		int returnVal = chooser.showOpenDialog(frame);
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+			try {
+				packetList.open(chooser.getSelectedFile());
+			}
+			catch (IOException e) {
+				JOptionPane.showMessageDialog(frame,
+					    e.getMessage(),
+					    "Pcap File Error",
+					    JOptionPane.ERROR_MESSAGE);
+			}
+		}
+	}
+	
+	/**
+	 * Close the packet capture file.
+	 */
+	private void closePcapFile() {
+		packetList.close();
+	}
 }
