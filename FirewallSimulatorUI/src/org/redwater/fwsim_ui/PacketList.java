@@ -2,6 +2,7 @@ package org.redwater.fwsim_ui;
 
 import java.io.EOFException;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -18,29 +19,40 @@ import org.pcap4j.packet.Packet;
  * @author ghelmer
  *
  */
-public class PacketInput {
+public class PacketList {
 	private PcapHandle pcapHandle;
 	private List<Packet> packets;
 	
-	public PacketInput() {
+	public PacketList() {
 		pcapHandle = null;
 	}
 	
 	/**
 	 * Open the specified file to read packets.
 	 * @param f - File containing packet capture
+	 * @throws IOException 
 	 * @throws PcapNativeException
+	 * @throws NotOpenException 
+	 * @throws TimeoutException 
 	 */
-	public void open(File f) throws PcapNativeException {
+	public void open(File f) throws IOException {
 		close();
-		pcapHandle = Pcaps.openOffline(f.getAbsolutePath());
-		loadPackets();
+		try {
+			pcapHandle = Pcaps.openOffline(f.getAbsolutePath());
+			loadPackets();
+		}
+		catch (PcapNativeException | TimeoutException | NotOpenException e) {
+			throw new IOException(String.format("Failed to open or read %s: %s", f.getAbsolutePath(), e.getMessage()));
+		}
 	}
 	
 	/**
 	 * Load the packets from the current pcap file.
+	 * @throws NotOpenException 
+	 * @throws TimeoutException 
+	 * @throws PcapNativeException 
 	 */
-	private void loadPackets() {
+	private void loadPackets() throws PcapNativeException, TimeoutException, NotOpenException {
 		List<Packet> packetList = new ArrayList<>();
 	    try {
 	        Packet packet;
@@ -48,16 +60,7 @@ public class PacketInput {
 	            packetList.add(packet);
 	        }
 	    } catch (EOFException e) {
-	    } catch (PcapNativeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (TimeoutException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NotOpenException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	    }
 	    packets = packetList;
 	}
 	
