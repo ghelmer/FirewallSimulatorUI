@@ -25,6 +25,7 @@ public class PacketList {
 	
 	public PacketList() {
 		pcapHandle = null;
+		packets = null;
 	}
 	
 	/**
@@ -76,5 +77,20 @@ public class PacketList {
 	
 	public Iterator<WrappedPacket> iterator() {
 		return packets.iterator();
+	}
+	
+	/**
+	 * Get the packet at the indicated index.
+	 * @param index of packet to retrieve
+	 * @return packet
+	 */
+	public WrappedPacket getPacket(int index) {
+		if (packets == null) {
+			throw new IndexOutOfBoundsException("Pcap file must be opened first");
+		}
+		if (index >= packets.size()) {
+			throw new IndexOutOfBoundsException(String.format("Index must be in the range of 0 to %d", packets.size()));
+		}
+		return packets.get(index);
 	}
 }

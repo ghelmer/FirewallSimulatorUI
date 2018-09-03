@@ -128,6 +128,12 @@ public class FWSimMainWindow {
 		// packetsPanel.add(packetListScrollBar, "cell 2 1 1 4,grow");
 		
 		JButton btnTestSelectedPacket = new JButton("Test Selected Packet");
+		btnTestSelectedPacket.addActionListener(new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent arg0) {
+		        testSelectedPacket(packetList.getSelectedIndex());
+		    }
+		});
 		packetsPanel.add(btnTestSelectedPacket, "cell 3 1,alignx center,aligny center");
 		
 		JLabel resultLabel = new JLabel("Result");
@@ -185,6 +191,26 @@ public class FWSimMainWindow {
 		    }
 		});
 		mnFile.add(mntmExit);
+	}
+	
+	/**
+	 * Test the selected packet.
+	 */
+	private void testSelectedPacket(int packetIndex) {
+		try {
+			WrappedPacket p = packets.getPacket(packetIndex);
+			JOptionPane.showMessageDialog(frame,
+				    String.format("Would test packet at row %d %s", packetIndex + 1, p.toString()),
+				    "Pcap Test Result",
+				    JOptionPane.INFORMATION_MESSAGE);
+
+		}
+		catch (IndexOutOfBoundsException e) {
+			JOptionPane.showMessageDialog(frame,
+				    e.getMessage(),
+				    "Packet Test Error",
+				    JOptionPane.ERROR_MESSAGE);
+		}
 	}
 
 	/**
