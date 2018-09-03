@@ -8,6 +8,7 @@ import javax.swing.JTextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 
 import javax.swing.JMenuBar;
@@ -21,6 +22,11 @@ import java.awt.Font;
 import javax.swing.JList;
 import javax.swing.SwingConstants;
 import javax.swing.filechooser.FileNameExtensionFilter;
+
+import org.redwater.fwsim.exceptions.InvalidFieldValueException;
+import org.redwater.fwsim.exceptions.UnhandledFieldNameException;
+import org.redwater.fwsim.rules.IRule;
+import org.redwater.fwsim.services.TextRuleParser;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
@@ -39,6 +45,8 @@ public class FWSimMainWindow {
 	private JList<String> packetList;
 	private DefaultListModel<String> packetListModel;
 	private PacketList packets;
+	private JList<String> ruleList;
+	private DefaultListModel<String> ruleListModel;
 
 	/**
 	 * Launch the application.
@@ -86,16 +94,37 @@ public class FWSimMainWindow {
 		rulesPanel.add(rulesFilenameTextField, "cell 1 0,growx");
 		rulesFilenameTextField.setColumns(10);
 		
-		JList<String> rulesList = new JList<>();
-		rulesPanel.add(rulesList, "cell 0 1 2 4,grow");
+		JScrollPane ruleListScrollPane = new JScrollPane();		
+		ruleListModel = new DefaultListModel<>();
+		ruleList = new JList<>(ruleListModel);
+		ruleListScrollPane.setViewportView(ruleList);
+		rulesPanel.add(ruleListScrollPane, "cell 0 1 2 4,grow");
 		
 		JButton btnAddRule = new JButton("Add Rule");
+		btnAddRule.addActionListener(new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent arg0) {
+		        ruleListAdd(ruleList.getSelectedIndex());
+		    }
+		});
 		rulesPanel.add(btnAddRule, "cell 4 1,growx,aligny center");
 		
 		JButton btnRemoveRule = new JButton("Remove Rule");
+		btnRemoveRule.addActionListener(new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent arg0) {
+		        ruleListRemove(ruleList.getSelectedIndex());
+		    }
+		});
 		rulesPanel.add(btnRemoveRule, "cell 4 2,growx,aligny center");
 		
 		JButton btnMoveRule = new JButton("Move Rule");
+		btnMoveRule.addActionListener(new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent arg0) {
+		        ruleListMove(ruleList.getSelectedIndex());
+		    }
+		});
 		rulesPanel.add(btnMoveRule, "cell 4 3,growx,aligny center");
 		
 		JScrollBar scrollBar = new JScrollBar();
@@ -257,5 +286,79 @@ public class FWSimMainWindow {
 	private void closePcapFile() {
 		packets.close();
 		packetListModel.clear();
+	}
+	
+	/**
+	 * Add a rule to the list.
+	 */
+	private void ruleListAdd(int ruleIndex) {
+		boolean done = false;
+		while (!done) {
+			String ruleString = JOptionPane.showInputDialog(frame, "Enter rule", "Enter Rule", JOptionPane.PLAIN_MESSAGE);
+			try {
+				@SuppressWarnings("unused")
+				IRule r = TextRuleParser.parse(ruleString);
+				ruleListModel.add(ruleIndex + 1, ruleString);
+				done = true;
+			} catch (UnhandledFieldNameException | InvalidFieldValueException e) {
+				JOptionPane.showMessageDialog(frame,
+					    "Rule parsing failed: " + e.getMessage(),
+					    "Rule List Add Error",
+					    JOptionPane.ERROR_MESSAGE);	
+			}
+		}
+	}
+
+	/**
+	 * Move a rule in the list.
+	 */
+	private void ruleListMove(int ruleIndex) {
+		if (ruleIndex == -1) {
+			JOptionPane.showMessageDialog(frame,
+				    "Please select a rule first",
+				    "Rule List Move Error",
+				    JOptionPane.ERROR_MESSAGE);				
+			return;
+		}
+		boolean done = false;
+		while (!done) {
+			String newIndexString = JOptionPane.showInputDialog(frame, "Enter new line for rule", "Enter New Line", JOptionPane.PLAIN_MESSAGE);
+			try {
+				int newIndex = Integer.parseInt(newIndexString);
+				if (newIndex < 1 || newIndex > ruleListModel.size()) {
+					JOptionPane.showMessageDialog(frame,
+						    String.format("Rule move failed: new line for rule must be between 1 and %d", ruleListModel.size()),
+						    "Rule List Move Error",
+						    JOptionPane.ERROR_MESSAGE);
+					continue;
+				}
+				newIndex--;
+				if (newIndex != ruleIndex) {
+					ruleListModel.add(newIndex, ruleListModel.getElementAt(ruleIndex));
+					ruleListModel.remove(ruleIndex);
+				}
+				done = true;
+			}
+			catch (NumberFormatException e) {
+				JOptionPane.showMessageDialog(frame,
+					    "Rule move failed: " + e.getMessage(),
+					    "Rule List Move Error",
+					    JOptionPane.ERROR_MESSAGE);	
+			}
+		}
+	}
+
+	/**
+	 * Remove a rule from the list.
+	 */
+	private void ruleListRemove(int ruleIndex) {
+		if (ruleIndex == -1) {
+			JOptionPane.showMessageDialog(frame,
+				    "Please select a rule first",
+				    "Rule List Remove Error",
+				    JOptionPane.ERROR_MESSAGE);				
+			return;
+		}
+		ruleListModel.remove(ruleIndex);
 	}
 }
