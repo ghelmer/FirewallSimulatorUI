@@ -21,6 +21,14 @@ public class WrappedPacket {
 	}
 	
 	/**
+	 * Get the basic packet.
+	 * @return the packet
+	 */
+	public Packet getPacket() {
+		return packet;
+	}
+	
+	/**
 	 * Get the Ethernet packet.
 	 * @return Ethernet packet or null if not present
 	 */
