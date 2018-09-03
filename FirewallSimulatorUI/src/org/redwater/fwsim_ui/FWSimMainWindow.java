@@ -9,21 +9,18 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Vector;
 
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JMenu;
 import javax.swing.JSeparator;
-import javax.swing.JTable;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
 import java.awt.Font;
 import javax.swing.JList;
 import javax.swing.SwingConstants;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.table.DefaultTableModel;
 
 import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.Packet;
@@ -44,12 +41,8 @@ public class FWSimMainWindow {
 	private JTextField pcapFilenameTextField;
 	private JTextField rulesFilenameTextField;
 	private JTextField resultTextField;
-
-	private JTable packetList;
-	//private DefaultListModel<String> packetListModel;
-	Vector<Vector<String>> packetListRows;
-	Vector<String> packetListColumnNames;
-	
+	private JList<String> packetList;
+	private DefaultListModel<String> packetListModel;
 	private PacketList packets;
 
 	/**
@@ -129,16 +122,10 @@ public class FWSimMainWindow {
 		packetsPanel.add(pcapFilenameTextField, "cell 1 0,growx,aligny top");
 		pcapFilenameTextField.setColumns(80);
 		
-		packetListRows = new Vector<>();
-		packetListColumnNames = new Vector<>();
-		packetListColumnNames.addElement("#");
-		packetListColumnNames.addElement("Description");
-		packetList = new JTable(packetListRows, packetListColumnNames);
-		JScrollPane packetScrollPane = new JScrollPane(packetList);
-		packetList.setFillsViewportHeight(true);
+		JScrollPane packetScrollPane = new JScrollPane();		
+		packetListModel = new DefaultListModel<>();
+		packetList = new JList<>(packetListModel);
 		packetList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		packetList.setRowSelectionAllowed(true);
-		packetList.setColumnSelectionAllowed(false);
 		packetScrollPane.setViewportView(packetList);
 		packetsPanel.add(packetScrollPane, "cell 0 1 2 4,grow");
 		
@@ -220,20 +207,13 @@ public class FWSimMainWindow {
 			try {
 				packets.open(chooser.getSelectedFile());
 				Iterator<WrappedPacket> it = packets.iterator();
-				Vector<Vector<String>> updatedPacketListRows = new Vector<>();
-				//packetListModel.clear();
+				packetListModel.clear();
 				int packetNumber = 0;
 				while (it.hasNext()) {
 					packetNumber++;
 					WrappedPacket p = it.next();
-					//packetListModel.addElement(String.format("%4d %s", packetNumber, p.toString()));
-					Vector<String> packetListRow = new Vector<>();
-					packetListRow.addElement(Integer.toString(packetNumber));
-					packetListRow.addElement(p.toString());
-					updatedPacketListRows.addElement(packetListRow);
+					packetListModel.addElement(String.format("%4d %s", packetNumber, p.toString()));
 				}
-				packetListRows = updatedPacketListRows;
-				((DefaultTableModel)packetList.getModel()).setDataVector(packetListRows, packetListColumnNames);
 			}
 			catch (IOException e) {
 				JOptionPane.showMessageDialog(frame,
@@ -255,8 +235,6 @@ public class FWSimMainWindow {
 	 */
 	private void closePcapFile() {
 		packets.close();
-		//packetListModel.clear();
-		packetListRows = new Vector<>();
-		((DefaultTableModel)packetList.getModel()).setDataVector(packetListRows, packetListColumnNames);
+		packetListModel.clear();
 	}
 }
