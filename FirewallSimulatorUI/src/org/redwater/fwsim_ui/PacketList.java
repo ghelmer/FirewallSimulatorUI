@@ -21,7 +21,7 @@ import org.pcap4j.packet.Packet;
  */
 public class PacketList {
 	private PcapHandle pcapHandle;
-	private List<Packet> packets;
+	private List<WrappedPacket> packets;
 	
 	public PacketList() {
 		pcapHandle = null;
@@ -53,11 +53,11 @@ public class PacketList {
 	 * @throws PcapNativeException 
 	 */
 	private void loadPackets() throws PcapNativeException, TimeoutException, NotOpenException {
-		List<Packet> packetList = new ArrayList<>();
+		List<WrappedPacket> packetList = new ArrayList<>();
 	    try {
 	        Packet packet;
 	        while ((packet = pcapHandle.getNextPacketEx()) != null) {
-	            packetList.add(packet);
+	            packetList.add(new WrappedPacket(packet));
 	        }
 	    } catch (EOFException e) {
 	    }
@@ -74,7 +74,7 @@ public class PacketList {
 		}
 	}
 	
-	public Iterator<Packet> iterator() {
+	public Iterator<WrappedPacket> iterator() {
 		return packets.iterator();
 	}
 }

@@ -206,33 +206,13 @@ public class FWSimMainWindow {
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			try {
 				packets.open(chooser.getSelectedFile());
-				Iterator<Packet> it = packets.iterator();
+				Iterator<WrappedPacket> it = packets.iterator();
 				packetListModel.clear();
 				int packetNumber = 0;
 				while (it.hasNext()) {
 					packetNumber++;
-					Packet p = it.next();
-					String packetType = "Ether";
-					StringBuilder sb = new StringBuilder();
-					if (Packets.containsIpPacket(p)) {
-						IpPacket ipPacket = (IpPacket)p.get(IpPacket.class);
-						if (ipPacket != null) {
-							sb.append(String.format("srcIp %s dstIP %s ",
-									ipPacket.getHeader().getSrcAddr().getHostAddress(),
-									ipPacket.getHeader().getDstAddr().getHostAddress()));
-							packetType = "IP";
-						}
-					}
-					if (Packets.containsTcpPacket(p)) {
-						TcpPacket tcpPacket = (TcpPacket)p.get(TcpPacket.class);
-						if (tcpPacket != null) {
-							sb.append(String.format("srcPort %d dstPort %d ",
-									tcpPacket.getHeader().getSrcPort().valueAsInt(),
-									tcpPacket.getHeader().getDstPort().valueAsInt()));
-							packetType = "TCP";
-						}						
-					}
-					packetListModel.addElement(String.format("%4d %s %s", packetNumber, packetType, sb.toString()));
+					WrappedPacket p = it.next();
+					packetListModel.addElement(String.format("%4d %s", packetNumber, p.toString()));
 				}
 			}
 			catch (IOException e) {
