@@ -8,8 +8,9 @@ import javax.swing.JTextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -26,6 +27,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import org.redwater.fwsim.exceptions.InvalidFieldValueException;
 import org.redwater.fwsim.exceptions.UnhandledFieldNameException;
 import org.redwater.fwsim.rules.IRule;
+import org.redwater.fwsim.rules.RuleList;
 import org.redwater.fwsim.services.TextRuleParser;
 
 import javax.swing.DefaultListModel;
@@ -48,6 +50,9 @@ public class FWSimMainWindow {
 	private JList<String> ruleList;
 	private DefaultListModel<String> ruleListModel;
 
+	/* Compiled firewall rules. */
+	private RuleList compiledRules;
+
 	/**
 	 * Launch the application.
 	 */
@@ -68,6 +73,7 @@ public class FWSimMainWindow {
 	 * Create the application.
 	 */
 	public FWSimMainWindow() {
+		compiledRules = null;
 		packets = new PacketList();
 		initialize();
 	}
@@ -227,7 +233,31 @@ public class FWSimMainWindow {
 	 */
 	private void testSelectedPacket(int packetIndex) {
 		try {
+			if (compiledRules == null) {
+				List<String> rulesStrList = new ArrayList<>();
+				for (int i = 0; i < ruleListModel.size(); i++) {
+					rulesStrList.add(ruleListModel.getElementAt(i));
+				}
+				compiledRules = new RuleList();
+				compiledRules.parse(rulesStrList);
+			}
+		}
+		catch (UnhandledFieldNameException | InvalidFieldValueException e) {
+			JOptionPane.showMessageDialog(frame,
+				    e.getMessage(),
+				    "Packet Test Error - Rules Compilation Failed",
+				    JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		try {
 			WrappedPacket p = packets.getPacket(packetIndex);
+			IRule matchedRule = compiledRules.checkRules(p.getPacket());
+			if (matchedRule == null) {
+				// No match.
+			}
+			else {
+				// Show the match somehow.
+			}
 			JOptionPane.showMessageDialog(frame,
 				    String.format("Would test packet at row %d %s", packetIndex + 1, p.toString()),
 				    "Pcap Test Result",
@@ -300,6 +330,8 @@ public class FWSimMainWindow {
 				IRule r = TextRuleParser.parse(ruleString);
 				ruleListModel.add(ruleIndex + 1, ruleString);
 				done = true;
+				// Rules have changed: drop the existing compiled rules, if any.
+				compiledRules = null;
 			} catch (UnhandledFieldNameException | InvalidFieldValueException e) {
 				JOptionPane.showMessageDialog(frame,
 					    "Rule parsing failed: " + e.getMessage(),
@@ -338,6 +370,8 @@ public class FWSimMainWindow {
 					ruleListModel.remove(ruleIndex);
 				}
 				done = true;
+				// Rules have changed: drop the existing compiled rules, if any.
+				compiledRules = null;
 			}
 			catch (NumberFormatException e) {
 				JOptionPane.showMessageDialog(frame,
@@ -360,5 +394,7 @@ public class FWSimMainWindow {
 			return;
 		}
 		ruleListModel.remove(ruleIndex);
+		// Rules have changed: drop the existing compiled rules, if any.
+		compiledRules = null;
 	}
 }
